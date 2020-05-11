@@ -4,6 +4,7 @@ Database pmoA construction, pipeline and stuff related
 
 **#before starting**
 
+```
 download db from fungene for framebot
 
 min size aa = 600
@@ -19,13 +20,14 @@ count remaining sequences
 grep &quot;\&gt;&quot; nosz.fungene.clean.fasta \&gt; wc -l
 
 201 sequences for framebot database
+```
 
 **+++++++++++++++++++++++++++++++++++++++++++++++++++++**
 
 **#Download sequences using Entrez Direct from NCBI - it may take several hours.**
-
+```
 esearch -db nucleotide -query &quot;nosZ[gene]&quot; | efetch -format gpc | xtract -pattern INSDFeature -if INSDFeature\_key -equals CDS -and INSDQualifier\_value -equals nosZ -or INSDQualifier\_value -contains &#39;nitrous-oxide reductase&#39; -element INSDInterval\_accession -element INSDInterval\_from -element INSDInterval\_to | sort -u -k1,1 | uniq | xargs -n 3 sh -c &#39;efetch -db nuccore -id &quot;$0&quot; -seq\_start &quot;$1&quot; -seq\_stop &quot;$2&quot; -format fasta&#39;\&gt;nosZ.fasta
-
+```
 **Plus taxonomy file for formatting later:**
 
 esearch -db nucleotide -query &quot;nosZ[gene]&quot; | efetch -format gpc | xtract -pattern INSDSeq -if INSDFeature\_key -equals CDS -and INSDQualifier\_value -equals nosZ -or INSDQualifier\_value -contains &#39;nitrous-oxide reductase&#39; -element INSDSeq\_accession-version -element INSDSeq\_taxonomy | sort -u -k1,1 | uniq \&gt;tax\_nosz.txt
