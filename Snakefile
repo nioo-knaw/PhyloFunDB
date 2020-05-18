@@ -6,7 +6,7 @@ rule final:
 
 rule download_ncbi:
     output: 
-        "{gene}_fasta"
+        "{gene}.fasta"
     conda: 
         "envs/entrez.yaml"
     params:
