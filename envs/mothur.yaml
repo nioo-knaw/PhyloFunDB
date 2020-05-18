@@ -1,0 +1,4 @@
+channels:
+  - bioconda
+dependencies:
+  - mothur=1.44

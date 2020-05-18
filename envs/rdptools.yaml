@@ -1,0 +1,4 @@
+channels:
+  - bioconda
+dependencies:
+  - rdptools=2.0.2
