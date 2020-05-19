@@ -4,8 +4,8 @@ wildcard_constraints:
 
 rule final:
     input: expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile \
-                  {gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta" \
-                   tax_{gene}.txt".split(), gene=config["gene"], minlength={config['minlength']})
+                  {gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
+                   tax_{gene}.txt".split(), gene=config["gene"])
 
 rule download_ncbi:
     output: 
@@ -16,7 +16,8 @@ rule download_ncbi:
         gene="{gene}",
         full_name=config["full_name"]
     message: "Retrieving gene sequences from NCBI. Note, this can take a (long) while"
-    shell:"""esearch -db nucleotide -query "{params.gene}[gene]" | \
+    shell:"""
+           esearch -db nucleotide -query "{params.gene}[gene]" | \
            efetch -format gpc | \
            xtract -pattern INSDFeature -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDInterval_accession -element INSDInterval_from -element INSDInterval_to | \
            sort -u -k1,1 | \
@@ -80,7 +81,7 @@ rule mothur_trim:
         conda:
             "envs/mothur.yaml"
         params:
-            minlength={config['minlength']}
+            minlength=config['minlength']
         threads:10
         shell:
             '''
