@@ -91,7 +91,8 @@ rule framebot:
             fasta="{gene}.renamed.pick.trim.fasta",
             db_framebot="{gene}.fungene.clean.fasta"
         output:
-            "{gene}.framebot_corr_nucl.fasta",
+            "{gene}.framebot_corr_nucl.fasta"
+
         params:
             "{gene}.framebot"
         conda:
