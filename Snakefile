@@ -1,7 +1,7 @@
 configfile: "config.yaml"
 
 rule final:
-    input: expand("{gene}.framebot_corr_nucl.fasta, \
+    input: expand("{gene}.framebot_corr_nucl.fasta \
                    tax_{gene}.txt".split(), gene=config["gene"], minlength={config['minlength']})
 
 rule download_ncbi:
@@ -85,12 +85,12 @@ rule mothur_trim:
             '''
 rule framebot:
         input:
-            fasta="nosZ.renamed.pick.trim.fasta",
-            db_framebot="nosZ.fungene.clean.fasta"
+            fasta="{gene}.renamed.pick.trim.fasta",
+            db_framebot="{gene{.fungene.clean.fasta"
         output:
-            "nosZ.framebot_corr_nucl.fasta",
+            "{gene}.framebot_corr_nucl.fasta"
         params:
-            "nosZ.framebot"
+            "{gene}.framebot"
         conda:
             "envs/rdptools.yaml"
         shell:
