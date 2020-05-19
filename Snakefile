@@ -34,3 +34,4 @@ esearch -db nucleotide -query "{params.gene}[gene]" | \
 efetch -format gpc | \
 xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDSeq_accession-version -element INSDSeq_taxonomy | sort -u -k1,1 | uniq > {output}
 """
+
