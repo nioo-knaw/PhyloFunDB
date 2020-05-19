@@ -1,7 +1,10 @@
 configfile: "config.yaml"
+wildcard_constraints:
+   gene = '\w+'
 
 rule final:
-    input: expand("{gene}.framebot_corr_nucl.fasta, \
+    input: expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile \
+                  {gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta" \
                    tax_{gene}.txt".split(), gene=config["gene"], minlength={config['minlength']})
 
 rule download_ncbi:
@@ -85,18 +88,181 @@ rule mothur_trim:
             '''
 rule framebot:
         input:
-            fasta="nosZ.renamed.pick.trim.fasta",
-            db_framebot="nosZ.fungene.clean.fasta"
+            fasta="{gene}.renamed.pick.trim.fasta",
+            db_framebot="{gene}.fungene.clean.fasta"
         output:
-            "nosZ.framebot_corr_nucl.fasta",
+            "{gene}.framebot_corr_nucl.fasta",
         params:
-            "nosZ.framebot"
+            "{gene}.framebot"
         conda:
             "envs/rdptools.yaml"
         shell:
             "java -jar /mnt/nfs/bioinfdata/home/NIOO/ohanac/.conda/envs/rdptools/share/rdptools-2.0.2-1/FrameBot.jar framebot -o {params} -N {input.db_framebot} {input.fasta}"
        
-       
-       
-       
-       
+rule align:
+        input:
+            expand("{gene}.framebot_corr_nucl.fasta", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.fasta", gene=config["gene"])
+        conda:
+            "envs/mafft.yaml"
+        threads:10
+        shell:
+            "mafft --thread {threads} --auto {input} >{output}"
+            
+rule screen_alignment:
+        input:
+            expand("{gene}.aligned.fasta", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.fasta", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        threads:10
+        shell:
+            '''
+            mothur "#screen.seqs(fasta={input}, optimize=start-end, criteria=96, processors={threads})"
+            '''
+rule filter_alignment:
+        input:
+            expand("{gene}.aligned.good.fasta", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.fasta", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        threads:10
+        shell:
+            '''
+            mothur "#filter.seqs(fasta={input}, vertical=T, trump=., processors={threads})"
+            '''
+rule unique1:
+        input:
+            expand("{gene}.aligned.good.filter.fasta", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.unique.fasta", gene=config["gene"]),
+            expand("{gene}.aligned.good.filter.names", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        shell:
+            '''
+            mothur "#unique.seqs(fasta={input})"
+            '''            
+            
+rule chimera_vsearch:
+        input:
+            fasta=expand("{gene}.aligned.good.filter.unique.fasta", gene=config["gene"]),
+            name=expand("{gene}.aligned.good.filter.names", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.unique.denovo.vsearch.accnos", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        shell:
+            '''
+            mothur "#chimera.vsearch(fasta={input.fasta}, name={input.name})"
+            '''
+            
+rule chimera_removal:
+        input:
+            accnos=expand("{gene}.aligned.good.filter.unique.denovo.vsearch.accnos", gene=config["gene"]),
+            fasta=expand("{gene}.aligned.good.filter.unique.fasta", gene=config["gene"]),
+            name=expand("{gene}.aligned.good.filter.names", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.pick.names", gene=config["gene"]),
+            expand("{gene}.aligned.good.filter.unique.pick.fasta", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        shell:
+            '''
+            mothur "#remove.seqs(accnos={input.accnos}, fasta={input.fasta}, name={input.name})"
+            '''
+            
+rule screen_alignment2:
+        input:
+            fasta=expand("{gene}.aligned.good.filter.unique.pick.fasta", gene=config["gene"]),
+            name=expand("{gene}.aligned.good.filter.pick.names", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.unique.pick.good.fasta", gene=config["gene"]),
+            expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        threads:10
+        shell:
+            '''
+            mothur "#screen.seqs(fasta={input.fasta}, name={input.name}, optimize=start-end, criteria=96, processors={threads})"
+            '''
+            
+rule filter_alignment2:
+        input:
+            expand("{gene}.aligned.good.filter.unique.pick.good.fasta", gene=config["gene"]),
+        output:
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        threads:10
+        shell:
+            '''
+            mothur "#filter.seqs(fasta={input}, vertical=T, trump=., processors={threads})"
+            '''
+            
+rule distance_matrix:
+        input:
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"]),
+        output:
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.dist", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        threads:10
+        shell:
+            '''
+            mothur "#dist.seqs(fasta={input}, cutoff=0.3)"
+            '''
+            
+rule clustering:
+        input:
+            column=expand("{gene}.aligned.good.filter.unique.pick.good.filter.dist", gene=config["gene"]),
+            name=expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.list", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        shell:
+            '''
+            mothur "#cluster(column={input.column}, name={input.name}, method=average, cutoff=0.3)"
+            '''
+rule otu_reps:
+        input:
+            column=expand("{gene}.aligned.good.filter.unique.pick.good.filter.dist", gene=config["gene"]),
+            fasta=expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"]),
+            name=expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"]),
+            list=expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.list", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta", gene=config["gene"]),
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.names", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        shell:
+            '''
+            mothur "#get.oturep(column={input.column}, fasta={input.fasta}, name={input.name}, list={input.list}, cutoff={config[cutoff_otu]})"
+            '''
+
+rule final_database:
+        input:
+            fasta=expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"]),
+            name=expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta", gene=config["gene"])
+        conda:
+            "envs/mothur.yaml"
+        shell:
+            '''
+            mothur "#deunique.seqs(fasta={input.fasta}, name={input.name})"
+            '''            
+rule iqtree:
+        input:
+           expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta", gene=config["gene"])
+        output:
+            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile", gene=config["gene"])
+        conda:
+            "envs/iqtree.yaml"
+        threads:10
+        shell:
+            "iqtree -s {input}  -m MFP -alrt 1000 -bb 1000 -nt {threads}"
