@@ -89,16 +89,16 @@ rule mothur_trim:
             '''
 rule framebot:
         input:
-            fasta=expand("{gene}.renamed.pick.trim.fasta", gene=config["gene"]),
-            db_framebot=expand("{gene}.fungene.clean.fasta", gene=config["gene"])
+            fasta="{gene}.renamed.pick.trim.fasta",
+            db_framebot="{gene}.fungene.clean.fasta"
         output:
-            expand("{gene}.framebot_corr_nucl.fasta", gene=config["gene"])
+            "{gene}.framebot_corr_nucl.fasta"
         params:
-            expand("{gene}.framebot", gene=config["gene"])
+            "{gene}.framebot"
         conda:
             "envs/rdptools.yaml"
         shell:
-            "java -jar FrameBot.jar framebot -o {params} -N {input.db_framebot} {input.fasta}"
+            "java -jar .snakemake/conda/26ff1844/share/rdptools-2.0.2-1/FrameBot.jar framebot -o {params} -N {input.db_framebot} {input.fasta}"
        
 rule align:
         input:
