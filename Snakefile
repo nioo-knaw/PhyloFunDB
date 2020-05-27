@@ -3,13 +3,13 @@ wildcard_constraints:
    gene = '\w+'
 
 rule final:
-    input: expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile \
-                  {gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
-                   tax_{gene}.txt".split(), gene=config["gene"])
+    input: expand("results/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile \
+                  results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
+                   results/{gene}.taxonomy.final.txt".split(), gene=config["gene"])
 
 rule download_ncbi:
     output: 
-        "{gene}.fasta"
+        "interm/{gene}.fasta"
     conda: 
         "envs/entrez.yaml"
     params:
@@ -26,7 +26,7 @@ rule download_ncbi:
 
 rule download_taxonomy:
     output:
-        "tax_{gene}.txt"
+        "interm/tax_{gene}.txt"
     conda:
         "envs/entrez.yaml"
     params:
@@ -41,20 +41,20 @@ xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value
 
 rule rename_seqs:
     input:
-        "{gene}.fasta"
+        "interm/{gene}.fasta"
     output:
-        "{gene}.renamed.fasta"
+        "interm/{gene}.renamed.fasta"
     shell:
-       """sed -e 's/[.]/-/' -e 's/ /-/g' {input} | \
+       """sed -e 's/[.]/-/' -e 's/ /-/g' -e 's/_//g' {input} | \
        stdbuf -o0 cut -d "-" -f 1,4,5| \
        sed -e 's/-/_/g' -e 's/[.]//g' -e 's/[,]//g' > {output}
        """
        
 rule get_unverified:
     input:
-        "{gene}.renamed.fasta"
+        "interm/{gene}.renamed.fasta"
     output:
-        "{gene}.unverified.accnos"
+        "interm/{gene}.unverified.accnos"
     shell:
         """grep UNVERIFIED {input} | \
         stdbuf -o0 cut -c 2- > {output}
@@ -62,10 +62,10 @@ rule get_unverified:
         
 rule remove_unverified:
         input:
-            accnos="{gene}.unverified.accnos",
-            fasta="{gene}.renamed.fasta"
+            accnos="interm/{gene}.unverified.accnos",
+            fasta="interm/{gene}.renamed.fasta"
         output:
-            "{gene}.renamed.pick.fasta"
+            "interm/{gene}.renamed.pick.fasta"
         conda:
             "envs/mothur.yaml"
         shell:
@@ -75,9 +75,9 @@ rule remove_unverified:
             
 rule mothur_trim:
         input:
-            "{gene}.renamed.pick.fasta"
+            "interm/{gene}.renamed.pick.fasta"
         output:
-            "{gene}.renamed.pick.trim.fasta"
+            "interm/{gene}.renamed.pick.trim.fasta"
         conda:
             "envs/mothur.yaml"
         params:
@@ -89,22 +89,22 @@ rule mothur_trim:
             '''
 rule framebot:
         input:
-            fasta="{gene}.renamed.pick.trim.fasta",
-            db_framebot="{gene}.fungene.clean.fasta"
+            fasta="interm/{gene}.renamed.pick.trim.fasta",
+            db_framebot="dbs/{gene}.fungene.clean.fasta"
         output:
-            "{gene}.framebot_corr_nucl.fasta"
+            "interm/{gene}.framebot_corr_nucl.fasta"
         params:
-            "{gene}.framebot"
+            "interm/{gene}.framebot"
         conda:
             "envs/rdptools.yaml"
         shell:
-            "java -jar .snakemake/conda/26ff1844/share/rdptools-2.0.2-1/FrameBot.jar framebot -o {params} -N {input.db_framebot} {input.fasta}"
+            "FrameBot framebot -o {params} -N {input.db_framebot} {input.fasta}"
        
 rule align:
         input:
-            expand("{gene}.framebot_corr_nucl.fasta", gene=config["gene"])
+            "interm/{gene}.framebot_corr_nucl.fasta"
         output:
-            expand("{gene}.aligned.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.fasta"
         conda:
             "envs/mafft.yaml"
         threads:10
@@ -113,9 +113,9 @@ rule align:
             
 rule screen_alignment:
         input:
-            expand("{gene}.aligned.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.fasta"
         output:
-            expand("{gene}.aligned.good.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.good.fasta"
         conda:
             "envs/mothur.yaml"
         threads:10
@@ -125,9 +125,9 @@ rule screen_alignment:
             '''
 rule filter_alignment:
         input:
-            expand("{gene}.aligned.good.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.good.fasta"
         output:
-            expand("{gene}.aligned.good.filter.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.fasta"
         conda:
             "envs/mothur.yaml"
         threads:10
@@ -137,10 +137,10 @@ rule filter_alignment:
             '''
 rule unique1:
         input:
-            expand("{gene}.aligned.good.filter.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.fasta"
         output:
-            expand("{gene}.aligned.good.filter.unique.fasta", gene=config["gene"]),
-            expand("{gene}.aligned.good.filter.names", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.unique.fasta",
+            "interm/{gene}.aligned.good.filter.names"
         conda:
             "envs/mothur.yaml"
         shell:
@@ -150,10 +150,10 @@ rule unique1:
             
 rule chimera_vsearch:
         input:
-            fasta=expand("{gene}.aligned.good.filter.unique.fasta", gene=config["gene"]),
-            name=expand("{gene}.aligned.good.filter.names", gene=config["gene"])
+            fasta="interm/{gene}.aligned.good.filter.unique.fasta",
+            name="interm/{gene}.aligned.good.filter.names"
         output:
-            expand("{gene}.aligned.good.filter.unique.denovo.vsearch.accnos", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.unique.denovo.vsearch.accnos"
         conda:
             "envs/mothur.yaml"
         shell:
@@ -163,12 +163,12 @@ rule chimera_vsearch:
             
 rule chimera_removal:
         input:
-            accnos=expand("{gene}.aligned.good.filter.unique.denovo.vsearch.accnos", gene=config["gene"]),
-            fasta=expand("{gene}.aligned.good.filter.unique.fasta", gene=config["gene"]),
-            name=expand("{gene}.aligned.good.filter.names", gene=config["gene"])
+            accnos="interm/{gene}.aligned.good.filter.unique.denovo.vsearch.accnos",
+            fasta="interm/{gene}.aligned.good.filter.unique.fasta",
+            name="interm/{gene}.aligned.good.filter.names"
         output:
-            expand("{gene}.aligned.good.filter.pick.names", gene=config["gene"]),
-            expand("{gene}.aligned.good.filter.unique.pick.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.pick.names",
+            "interm/{gene}.aligned.good.filter.unique.pick.fasta"
         conda:
             "envs/mothur.yaml"
         shell:
@@ -178,11 +178,11 @@ rule chimera_removal:
             
 rule screen_alignment2:
         input:
-            fasta=expand("{gene}.aligned.good.filter.unique.pick.fasta", gene=config["gene"]),
-            name=expand("{gene}.aligned.good.filter.pick.names", gene=config["gene"])
+            fasta="interm/{gene}.aligned.good.filter.unique.pick.fasta",
+            name="interm/{gene}.aligned.good.filter.pick.names"
         output:
-            expand("{gene}.aligned.good.filter.unique.pick.good.fasta", gene=config["gene"]),
-            expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.unique.pick.good.fasta",
+            "interm/{gene}.aligned.good.filter.pick.good.names"
         conda:
             "envs/mothur.yaml"
         threads:10
@@ -193,9 +193,9 @@ rule screen_alignment2:
             
 rule filter_alignment2:
         input:
-            expand("{gene}.aligned.good.filter.unique.pick.good.fasta", gene=config["gene"]),
+            "interm/{gene}.aligned.good.filter.unique.pick.good.fasta"
         output:
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta"
         conda:
             "envs/mothur.yaml"
         threads:10
@@ -206,9 +206,9 @@ rule filter_alignment2:
             
 rule distance_matrix:
         input:
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"]),
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta"
         output:
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.dist", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.dist"
         conda:
             "envs/mothur.yaml"
         threads:10
@@ -219,10 +219,10 @@ rule distance_matrix:
             
 rule clustering:
         input:
-            column=expand("{gene}.aligned.good.filter.unique.pick.good.filter.dist", gene=config["gene"]),
-            name=expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"])
+            column="interm/{gene}.aligned.good.filter.unique.pick.good.filter.dist",
+            name="interm/{gene}.aligned.good.filter.pick.good.names"
         output:
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.list", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.list"
         conda:
             "envs/mothur.yaml"
         shell:
@@ -231,13 +231,13 @@ rule clustering:
             '''
 rule otu_reps:
         input:
-            column=expand("{gene}.aligned.good.filter.unique.pick.good.filter.dist", gene=config["gene"]),
-            fasta=expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"]),
-            name=expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"]),
-            list=expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.list", gene=config["gene"])
+            column="interm/{gene}.aligned.good.filter.unique.pick.good.filter.dist",
+            fasta="interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta",
+            name="interm/{gene}.aligned.good.filter.pick.good.names",
+            list="interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.list"
         output:
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta", gene=config["gene"]),
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.names", gene=config["gene"])
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta",
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.names"
         conda:
             "envs/mothur.yaml"
         shell:
@@ -247,21 +247,52 @@ rule otu_reps:
 
 rule final_database:
         input:
-            fasta=expand("{gene}.aligned.good.filter.unique.pick.good.filter.fasta", gene=config["gene"]),
-            name=expand("{gene}.aligned.good.filter.pick.good.names", gene=config["gene"])
+            fasta="interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta",
+            name="interm/{gene}.aligned.good.filter.pick.good.names"
         output:
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta", gene=config["gene"])
+            "results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta"
         conda:
             "envs/mothur.yaml"
         shell:
             '''
-            mothur "#deunique.seqs(fasta={input.fasta}, name={input.name})"
-            '''            
+            mothur "#deunique.seqs(fasta={input.fasta}, name={input.name}, outputdir=./results)"
+            '''
+rule tax_format:
+        input:
+            "interm/tax_{gene}.txt"
+        output:
+            "interm/newtax_{gene}.txt"
+        shell:
+            """
+            sed -e 's/_//g' -e 's/ //g' -e 's/$/;/' {input} > {output}
+            """
+
+rule get_fasta_names:
+        input:
+            "results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta"
+        output:
+            "interm/{gene}_fasta_final.names.txt"
+        shell:
+            """
+            grep ">" {input} | stdbuf -o0 cut -c 2- > {output}
+            """
+
+rule tax_format_final:
+        input:
+            fasta="interm/{gene}_fasta_final.names.txt",
+            tax="interm/newtax_{gene}.txt"
+        output:
+            final_tax="results/{gene}.taxonomy.final.txt"
+        conda:
+            "envs/tidyr.yaml"
+        script:
+            "renaming.R"
+          
 rule iqtree:
         input:
-           expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta", gene=config["gene"])
+           "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta"
         output:
-            expand("{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile", gene=config["gene"])
+            "results/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile"
         conda:
             "envs/iqtree.yaml"
         threads:10
