@@ -3,7 +3,7 @@ wildcard_constraints:
    gene = '\w+'
 
 rule final:
-    input: expand("results/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile \
+    input: expand("results/{gene}.treefile \
                   results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
                    results/{gene}.taxonomy.final.txt".split(), gene=config["gene"])
 
@@ -214,7 +214,7 @@ rule distance_matrix:
         threads:10
         shell:
             '''
-            mothur "#dist.seqs(fasta={input}, cutoff=0.3)"
+            mothur "#dist.seqs(fasta={input}, cutoff=0.35, processors={threads})"
             '''
             
 rule clustering:
@@ -227,7 +227,7 @@ rule clustering:
             "envs/mothur.yaml"
         shell:
             '''
-            mothur "#cluster(column={input.column}, name={input.name}, method=average, cutoff=0.3)"
+            mothur "#cluster(column={input.column}, name={input.name}, method=average, cutoff=0.35)"
             '''
 rule otu_reps:
         input:
@@ -292,9 +292,11 @@ rule iqtree:
         input:
            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta"
         output:
-            "results/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile"
+            "results/{gene}.treefile"
+        params:
+            "results/{gene}"
         conda:
             "envs/iqtree.yaml"
         threads:10
         shell:
-            "iqtree -s {input}  -m MFP -alrt 1000 -bb 1000 -nt {threads}"
+            "iqtree -s {input}  -m MFP -alrt 1000 -bb 1000 -nt {threads} -pre {params}"
