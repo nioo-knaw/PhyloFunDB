@@ -2,3 +2,4 @@ gene: nosZ
 full_name: "nitrous-oxide reductase"
 minlength: 350
 cutoff_otu: 0.11
+cutoff_dm: 0.25

@@ -5,7 +5,7 @@ wildcard_constraints:
 rule final:
     input: expand("results/{gene}.treefile \
                   results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
-                   results/{gene}.taxonomy.final.txt".split(), gene=config["gene"])
+                   results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"])
 
 rule download_ncbi:
     output: 
@@ -214,7 +214,7 @@ rule distance_matrix:
         threads:10
         shell:
             '''
-            mothur "#dist.seqs(fasta={input}, cutoff=0.35, processors={threads})"
+            mothur "#dist.seqs(fasta={input}, cutoff={config[cutoff_dm]}, processors={threads})"
             '''
             
 rule clustering:
@@ -227,7 +227,7 @@ rule clustering:
             "envs/mothur.yaml"
         shell:
             '''
-            mothur "#cluster(column={input.column}, name={input.name}, method=average, cutoff=0.35)"
+            mothur "#cluster(column={input.column}, name={input.name}, method=average, cutoff={config[cutoff_dm]})"
             '''
 rule otu_reps:
         input:
@@ -236,8 +236,8 @@ rule otu_reps:
             name="interm/{gene}.aligned.good.filter.pick.good.names",
             list="interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.list"
         output:
-            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta",
-            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.names"
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta",
+            "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.names"
         conda:
             "envs/mothur.yaml"
         shell:
@@ -290,7 +290,7 @@ rule tax_format_final:
           
 rule iqtree:
         input:
-           "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta"
+           expand("interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta", gene=config["gene"], cutoff_otu=config["cutoff_otu"])
         output:
             "results/{gene}.treefile"
         params:
