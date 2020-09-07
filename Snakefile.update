@@ -3,8 +3,8 @@ wildcard_constraints:
    gene = '\w+'
 
 rule final:
-    input: expand("results/{gene}.treefile \
-                  results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
+    input: expand("RAxML_labelledTree.{gene} \
+                  results/new.{gene}.db.fasta \
                    results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"])
 
 rule download_ncbi:
@@ -35,7 +35,7 @@ rule download_taxonomy:
     message: "Retrieving taxonomy from NCBI. Note, this can take a (long) while"
     shell:"""
            esearch -db nucleotide -query "{params.gene}[gene]" | \
-           efetch -format gpc | \
+           efetch -format gpc | \ 
            xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDSeq_accession-version -element INSDSeq_taxonomy | sort -u -k1,1 | uniq > {output}
            """
 
@@ -45,7 +45,8 @@ rule rename_seqs:
     output:
         "interm/{gene}.renamed.fasta"
     shell:
-       """sed -e 's/[.]/-/' -e 's/ /-/g' -e 's/_//g' {input} | \
+       """
+       sed -e 's/[.]/-/' -e 's/ /-/g' -e 's/_//g' {input} | \
        stdbuf -o0 cut -d "-" -f 1,4,5| \
        sed -e 's/-/_/g' -e 's/[.]//g' -e 's/[,]//g' > {output}
        """
@@ -56,7 +57,8 @@ rule get_unverified:
     output:
         "interm/{gene}.unverified.accnos"
     shell:
-        """grep UNVERIFIED {input} | \
+        """
+        grep UNVERIFIED {input} | \
         stdbuf -o0 cut -c 2- > {output}
         """
         
@@ -182,13 +184,13 @@ rule screen_alignment2:
             name="interm/{gene}.aligned.good.filter.pick.names"
         output:
             "interm/{gene}.aligned.good.filter.unique.pick.good.fasta",
-            "interm/{gene}.aligned.good.filter.pick.good.names"
+            "interm/{gene}.aligned.good.filter.pick.names"
         conda:
             "envs/mothur.yaml"
         threads:10
         shell:
             '''
-            mothur "#screen.seqs(fasta={input.fasta}, name={input.name}, optimize=start-end, criteria=96, processors={threads})"
+            mothur "#screen.seqs(fasta={input.fasta}, name={input.name}, optimize=start-end, criteria=100, processors={threads})"
             '''
             
 rule filter_alignment2:
@@ -220,7 +222,7 @@ rule distance_matrix:
 rule clustering:
         input:
             column="interm/{gene}.aligned.good.filter.unique.pick.good.filter.dist",
-            name="interm/{gene}.aligned.good.filter.pick.good.names"
+            name="interm/{gene}.aligned.good.filter.pick.names"
         output:
             "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.list"
         conda:
@@ -233,7 +235,7 @@ rule otu_reps:
         input:
             column="interm/{gene}.aligned.good.filter.unique.pick.good.filter.dist",
             fasta="interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta",
-            name="interm/{gene}.aligned.good.filter.pick.good.names",
+            name="interm/{gene}.aligned.good.filter.pick.names",
             list="interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.list"
         output:
             "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta",
@@ -248,7 +250,7 @@ rule otu_reps:
 rule final_database:
         input:
             fasta="interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta",
-            name="interm/{gene}.aligned.good.filter.pick.good.names"
+            name="interm/{gene}.aligned.good.filter.pick.names"
         output:
             "results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta"
         conda:
@@ -288,15 +290,53 @@ rule tax_format_final:
         script:
             "renaming.R"
           
-rule iqtree:
+rule cat_EPA:
         input:
-           expand("interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta", gene=config["gene"], cutoff_otu=config["cutoff_otu"])
+           fasta_new=expand("interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta", gene=config["gene"], cutoff_otu=config["cutoff_otu"]),
+           fasta=config['path_to_seqs']
         output:
-            "results/{gene}.treefile"
-        params:
-            "results/{gene}"
+            "interm/new.{gene}.fasta"
+        shell:
+            """
+            cat {input.fasta_new} {input.fasta} > {output}
+            """
+            
+rule align_EPA:
+        input:
+           "interm/new.{gene}.fasta"
+        output:
+            "interm/new.{gene}.aligned.fasta"
         conda:
-            "envs/iqtree.yaml"
+            "envs/mafft.yaml"
         threads:10
         shell:
-            "iqtree -s {input}  -m MFP -alrt 1000 -bb 1000 -nt {threads} -pre {params}"
+            """
+            mafft --thread {threads} --auto {input} >{output}
+            """
+            
+rule EPA:
+        input:
+           fasta="interm/new.{gene}.aligned.fasta",
+           tree=config['path_to_tree']
+        output:
+            "RAxML_labelledTree.{gene}"
+        params:
+            "{gene}"
+        conda:
+            "envs/raxml.yaml"
+        threads:10
+        shell:
+            """
+            raxmlHPC -f v -s {input.fasta} -t {input.tree} -m GTRCAT -H -n {params}
+            """
+            
+rule cat_db:
+        input:
+           fasta_new="results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta",
+           fasta_db=config['path_to_db']
+        output:
+            "results/new.{gene}.db.fasta"
+        shell:
+            """
+            cat {input.fasta_new} {input.fasta_db} > {output}
+            """
