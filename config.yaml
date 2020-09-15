@@ -1,5 +1,6 @@
-gene: nosZ
-full_name: "nitrous-oxide reductase"
+gene: pmoA
+full_name: "methane monooxygenase"
 minlength: 350
-cutoff_otu: 0.11
+cutoff_otu: 0.04
 cutoff_dm: 0.25
+framebot_db: True   

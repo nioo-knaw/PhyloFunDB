@@ -89,7 +89,9 @@ rule mothur_trim:
             '''
             mothur "#trim.seqs(fasta={input}, minlength={params.minlength}, maxambig=0, processors={threads})"
             '''
-rule framebot:
+
+if config['framebot_db'] == True:
+    rule framebot:
         input:
             fasta="interm/{gene}.renamed.pick.trim.fasta",
             db_framebot="dbs/{gene}.fungene.clean.fasta"
@@ -104,7 +106,8 @@ rule framebot:
        
 rule align:
         input:
-            "interm/{gene}.framebot_corr_nucl.fasta"
+            "interm/{gene}.framebot_corr_nucl.fasta" if config['framebot_db'] == True else\
+            "interm/{gene}.renamed.pick.trim.fasta"
         output:
             "interm/{gene}.aligned.fasta"
         conda:
