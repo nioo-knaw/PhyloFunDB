@@ -58,7 +58,7 @@ rule get_unverified:
         "interm/{gene}.unverified.accnos"
     shell:
         """
-        grep UNVERIFIED {input} | \
+        set +o pipefail; grep UNVERIFIED {input} | \
         stdbuf -o0 cut -c 2- > {output}
         """
         

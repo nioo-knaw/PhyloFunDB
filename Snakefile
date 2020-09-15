@@ -45,7 +45,8 @@ rule rename_seqs:
     output:
         "interm/{gene}.renamed.fasta"
     shell:
-       """sed -e 's/[.]/-/' -e 's/ /-/g' -e 's/_//g' {input} | \
+       """
+       sed -e 's/[.]/-/' -e 's/ /-/g' -e 's/_//g' {input} | \
        stdbuf -o0 cut -d "-" -f 1,4,5| \
        sed -e 's/-/_/g' -e 's/[.]//g' -e 's/[,]//g' > {output}
        """
@@ -56,7 +57,8 @@ rule get_unverified:
     output:
         "interm/{gene}.unverified.accnos"
     shell:
-        """grep UNVERIFIED {input} | \
+        """
+        set +o pipefail; grep UNVERIFIED {input} | \
         stdbuf -o0 cut -c 2- > {output}
         """
         
