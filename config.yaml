@@ -1,6 +1,6 @@
-gene: pmoA
-full_name: "methane monooxygenase"
+gene: hhyL
+full_name: "hydrogenase"
 minlength: 350
-cutoff_otu: 0.04
+cutoff_otu: 0.01
 cutoff_dm: 0.25
-framebot_db: True   
+framebot_db: false   

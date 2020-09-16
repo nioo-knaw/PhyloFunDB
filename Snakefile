@@ -186,8 +186,7 @@ rule screen_alignment2:
             fasta="interm/{gene}.aligned.good.filter.unique.pick.fasta",
             name="interm/{gene}.aligned.good.filter.pick.names"
         output:
-            "interm/{gene}.aligned.good.filter.unique.pick.good.fasta",
-            "interm/{gene}.aligned.good.filter.pick.good.names"
+            "interm/{gene}.aligned.good.filter.unique.pick.good.fasta"
         conda:
             "envs/mothur.yaml"
         threads:10
@@ -221,11 +220,17 @@ rule distance_matrix:
             '''
             mothur "#dist.seqs(fasta={input}, cutoff={config[cutoff_dm]}, processors={threads})"
             '''
-            
+
+def get_namesfile(gene=config["gene"]):
+    if get_namesfile == "interm/{gene}.aligned.good.filter.pick.good.names":
+       return "interm/{gene}.aligned.good.filter.pick.good.names"
+    else:
+       return "interm/{gene}.aligned.good.filter.pick.names"
+
 rule clustering:
         input:
             column="interm/{gene}.aligned.good.filter.unique.pick.good.filter.dist",
-            name="interm/{gene}.aligned.good.filter.pick.good.names"
+            name=get_namesfile
         output:
             "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.list"
         conda:
@@ -238,7 +243,7 @@ rule otu_reps:
         input:
             column="interm/{gene}.aligned.good.filter.unique.pick.good.filter.dist",
             fasta="interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta",
-            name="interm/{gene}.aligned.good.filter.pick.good.names",
+            name=get_namesfile,
             list="interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.list"
         output:
             "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta",
@@ -253,7 +258,7 @@ rule otu_reps:
 rule final_database:
         input:
             fasta="interm/{gene}.aligned.good.filter.unique.pick.good.filter.fasta",
-            name="interm/{gene}.aligned.good.filter.pick.good.names"
+            name=get_namesfile
         output:
             "results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta"
         conda:
