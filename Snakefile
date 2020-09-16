@@ -221,8 +221,11 @@ rule distance_matrix:
             mothur "#dist.seqs(fasta={input}, cutoff={config[cutoff_dm]}, processors={threads})"
             '''
 
+import os.path
+from os import path
+
 def get_namesfile(gene=config["gene"]):
-    if get_namesfile == "interm/{gene}.aligned.good.filter.pick.good.names":
+    if os.path.exists("interm/{gene}.aligned.good.filter.pick.good.names"):
        return "interm/{gene}.aligned.good.filter.pick.good.names"
     else:
        return "interm/{gene}.aligned.good.filter.pick.names"
