@@ -1,229 +1,161 @@
-# Database pmoa
+# Database pipeline 
 
-Database pmoA construction, pipeline and stuff related
+Pipeline for specific gene database construction and update.
 
-**#before starting**
+**Introduction**
 
-```
-download db from fungene for framebot
+The pipeline is based on the following workflow: 
+
+![Db_pipeline](/uploads/e85a83817130c639c7537502834a46f2/Db_pipeline.png)
+
+
+**Before starting, you can download a framebot database (protein sequences) for your specific gene. However, for some genes, there is no fungene database available, so it is also possible to skip the Framebot step.**
+
+Download reference database from fungene, for framebot: http://fungene.cme.msu.edu/
+
+In fungene, set the parameters that are suitable for your gene, such as:
 
 min size aa = 600
 
 hmm coverage = 99
 
-remove duplicated sequences based on sequence
+**To remove duplicated sequences based on protein sequence you can use the following command, with the software seqkit:**
 
-seqkit rmdup nosz.fungene.fasta -s -o nosz.fungene.clean.fasta
+```
+conda create -n seqkit
+source activate seqkit
+conda install seqkit
 
-count remaining sequences
+seqkit rmdup {gene}.fungene.fasta -s -o {gene}.fungene.clean.fasta
 
-grep &quot;\&gt;&quot; nosz.fungene.clean.fasta \&gt; wc -l
-
-201 sequences for framebot database
 ```
 
-**+++++++++++++++++++++++++++++++++++++++++++++++++++++**
+**Getting started**
 
-**#Download sequences using Entrez Direct from NCBI - it may take several hours.**
+1. Logon to the place where you will analysis your data, e.g. server
+
+2. Create a local copy of the pipeline in a project folder
+
+`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/database-pmoa.git`
+
+3. Enter the pipeline folder with: 
+
+ `cd database-pmoa`
+
+4. The configuration of the pipeline needs to be set in the file **config.yaml**. Adjust the settings: 
+
 ```
-esearch -db nucleotide -query &quot;nosZ[gene]&quot; | efetch -format gpc | xtract -pattern INSDFeature -if INSDFeature\_key -equals CDS -and INSDQualifier\_value -equals nosZ -or INSDQualifier\_value -contains &#39;nitrous-oxide reductase&#39; -element INSDInterval\_accession -element INSDInterval\_from -element INSDInterval\_to | sort -u -k1,1 | uniq | xargs -n 3 sh -c &#39;efetch -db nuccore -id &quot;$0&quot; -seq\_start &quot;$1&quot; -seq\_stop &quot;$2&quot; -format fasta&#39;\&gt;nosZ.fasta
+gene: gene name
+full_name: "protein full name"
+minlength: minimum sequence length
+cutoff_otu: cut off for OTU clustering (generally found in the literature)
+cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
+framebot_db: false if there is no framebot reference database, otherwise, true
 ```
-**Plus taxonomy file for formatting later:**
+5. Check if the config file is correct and which steps will be run
 
-esearch -db nucleotide -query &quot;nosZ[gene]&quot; | efetch -format gpc | xtract -pattern INSDSeq -if INSDFeature\_key -equals CDS -and INSDQualifier\_value -equals nosZ -or INSDQualifier\_value -contains &#39;nitrous-oxide reductase&#39; -element INSDSeq\_accession-version -element INSDSeq\_taxonomy | sort -u -k1,1 | uniq \&gt;tax\_nosz.txt
+`snakemake -n`
 
-**Rename\_seqs**
+6. Run the pipeline. -j specifies the number of threads. Conda is the package manager. Optionally do this in a tmux session.
 
-sed -i -e &#39;s/[.]/|/&#39; -e &#39;s/ /|/g&#39; nosz.fasta
+`snakemake -j 8 --use-conda`
 
-cut -d &quot;|&quot; -f 1,3,4 nosz.fasta\&gt;nos.renamed.fasta
+ 
+_____________________________________________________________________________________________________________________________
 
-sed -i -e &#39;s/[|]/\_/g&#39; -e &#39;s/[.]//g&#39; -e &#39;s/[,]//g&#39; nos.renamed.fasta
+# Update pipeline 
 
-in= nosz.fasta
+Some time after you built your specific gene pipeline, it is possible to update it with the newest sequences uploaded to the NCBI database, setting a date range for downloading new sequences and adding the new OTUs to the reference tree. 
 
-out= nos.renamed.fasta
+The update pipeline is based on the following workflow: 
 
-**#Remove Unverified sequences (it was not necessary for nosz)**
+![Update_pipeline](/uploads/15a708d2183a2f30acb37ddbff13eca8/Update_pipeline.png)
 
-grep UNVERIFIED nos.renamed.fasta\&gt;unverified.accnos
+The most recent sequences will be downloaded, within a date range, processed and added to the initial reference tree.
 
-cut -c 2- unverified.accnos \&gt; unverified\_.accnos
+**Getting started**
 
-#mothur
+1. Logon to the place where you will analysis your data, e.g. server
 
-Mothur \&gt; Remove.seqs(accnos=unverified\_.accnos, fasta=nos.renamed.fasta)
+2. Create a local copy of the pipeline in a project folder
 
-Out= nos.renamed.pick.fasta
+`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/database-pmoa.git`
 
-25915 seqs
+3. Enter the pipeline folder with: 
 
-**Remove**  **short and containing ambiguous bases**  **sequences -Mothur**
+ `cd database-pmoa`
 
-trim.seqs(fasta=nos.renamed.fasta, minlength=350, maxambig=0, processors=10)
+4. The configuration of the pipeline needs to be set in the file **config.update.yaml**. Adjust the settings: 
 
-in= nos.renamed.fasta
+```
+gene: gene name
+full_name: "protein full name"
+mindate: date after the sequences in the initial database were donwloaded
+maxdate: current day
+minlength: minimum sequence length
+cutoff_otu: cut off for OTU clustering (generally found in the literature)
+cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
+framebot_db: false if there is no framebot reference database, otherwise, true
+path_to_tree: "path_to_the_reference_tree_of_the_database"
+path_to_seqs: "path_to_the_sequences_used_to_build_the_reference_tree_of_the_database" - the new sequences need to be aligned to the sequences in the tree
+path_to_db: "path_to_the_fasta_file_of_the_full_database"
+path_to_tax: "path_to_the_taxonomy_file_of_the_full_database"
 
-out = nos.renamed.trim.fasta
+```
+5. Check if the config file is correct and which steps will be run
 
-16256 seqs
+`snakemake -n -s Snakefile.update`
 
-**#Framebot**
+6. Run the pipeline. -j specifies the number of threads. Conda is the package manager. Optionally do this in a tmux session.
 
-java -jar /mnt/nfs/bioinfdata/data\_other/tools/RDPTools/FrameBot.jar framebot -o nosz.framebot -N ./nosz\_fungene/nosz.fungene.clean.fasta nos.renamed.trim.fasta
+`snakemake -j 8 -s Snakefile.update --use-conda`
 
-in= nos.renamed.trim.fasta
+___________________________________________________________________________________________________________________________________________________
 
-db=nosz.fungene.clean.fasta
+**Updating the pmoA database**
 
-out=nosz.framebot\_corr\_nucl.fasta
+For updating the pmoA database, there is a specific config file, **config.update.pmoa.yaml**, and a specific Snakefile, **Snakefile.update.pmoa**
+The main difference in this file is that the query words to recover sequences belonging to pmoA and other copper monooxygenase genes are already included in the Snakefile.
 
-nosz.framebot\_corr\_prot.fasta
+In order to update the pmoA database, you can follow the steps to update any other gene, then check the date parameters in the config.update.pmoa.yaml file:
 
-16213 corrected seqs
+```
+mindate: 2020/02/06
+maxdate: 2020/09/03
+```
+Also check if the paths to the tree file, to the tree sequences, full database fasta and full taxonomy file are correct. 
 
-**Align sequences**
+Check if everything is correct:
 
-mafft --thread 10 --auto nosz.framebot\_corr\_nucl.fasta \&gt;nosz.aligned.fasta
+`snakemake -n -s Snakefile.update.pmoa`
 
-in= nosz.framebot\_corr\_nucl.fasta
+Then, run the pmoA update pipeline
 
-out= nosz.aligned.fasta
+`snakemake -j 8 -s Snakefile.update.pmoa --use-conda`
 
-**Screen/filter alignment**
+_____________________________________________________________________________________________________________________________________________________
 
-screen.seqs(fasta=nosz.aligned.fasta, optimize=start-end, criteria=96, processors=10)
+# Refining sequence taxonomy 
 
-in= nosz.aligned.fasta
 
-out= nosz.aligned.good.fasta
+Download metadata from all sequences
+-entrez app from NCBI - conda install -c bioconda entrez-direct 
+esearch -db nucleotide -query "nirK[gene]" | efetch -format gpc | xtract -insd source organism mol_type strain country isolation_source | sort | uniq >iso_source_nirk_2.txt
 
-**filter alignment**
+-Look at the tree – check if there are defined clades in the literature
+-Check if there are cultivated representatives in the OTU groups
+-Get the taxonomy of the representatives using VLOOKUP (Excel)
+-Use the R script (expand_taxonomy.R) to expand the taxonomy to all the sequences in the OTU group
+-Check whether the cultivated representatives have their correct taxonomy (Excel). – until genus
 
-filter.seqs(fasta=nosz.aligned.good.fasta, vertical=T, trump=., processors=10)
+-Add the species and environmental origin to the last level of the taxonomy
+	-names and number of sequences in the .fasta and .taxonomy file must be equal.
+	-formatting will depend on the software to be used – remove all spaces, avoid different characters
+		-for mothur, strings should end with “;”
+		-for qiime2, strings should end without “;”
 
-in= nosz.aligned.good.fasta
 
-out=nosz.aligned.good.filter.fasta
 
-**Dereplicate seqs (necessary for chimera.vsearch without reference)**
 
-unique.seqs(fasta=nosz.aligned.good.filter.fasta)
 
-out= nosz.aligned.good.filter.names
 
-nosz.aligned.good.filter.unique.fasta
-
-**chimera detection without reference**
-
-chimera.vsearch(fasta=nosz.aligned.good.filter.unique.fasta, name=nosz.aligned.good.filter.names)
-
-in = nosz.aligned.good.filter.unique.fasta
-
-nosz.aligned.good.filter.names
-
-out= nosz.aligned.good.filter.unique.denovo.vsearch.accnos
-
-**chimera removal**
-
-remove.seqs(accnos=nosz.aligned.good.filter.unique.denovo.vsearch.accnos, fasta=nosz.aligned.good.filter.unique.fasta, name=nosz.aligned.good.filter.names)
-
-in= nosz.aligned.good.filter.unique.denovo.vsearch.accnos
-
-nosz.aligned.good.filter.unique.fasta
-
-nosz.aligned.good.filter.uniquefasta
-
-out=nosz.aligned.good.filter.pick.names
-
-nosz.aligned.good.filter.unique.pick.fasta
-
-14801 seqs
-
-**Screen/filter alignment**
-
-screen.seqs(fasta=nosz.aligned.good.filter.unique.pick.fasta, name=nosz.aligned.good.filter.pick.names, optimize=start-end, criteria=96, processors=10)
-
-in= nosz.aligned.good.filter.unique.pick.fasta
-
-nosz.aligned.good.filter.pick.names
-
-out= nosz.aligned.good.filter.unique.pick.good.fasta
-
-nosz.aligned.good.filter.pick.good.names
-
-filter.seqs(fasta=nosz.aligned.good.filter.unique.pick.good.fasta, vertical=T, trump=., processors=10)
-
-in= nosz.aligned.good.filter.unique.pick.good.fasta
-
-out= nosz.aligned.good.filter.unique.pick.good.filter.fasta
-
-Liu et al. 2019 Cutoff nosZ 89% similarity = 11% dissimilarity 0.11
-
-**Distance matrix**
-
-dist.seqs(fasta=nosz.aligned.good.filter.unique.pick.good.filter.fasta, cutoff=0.3)
-
-in= nosz.aligned.good.filter.unique.pick.good.filter.fasta
-
-out= nosz.aligned.good.filter.unique.pick.good.filter.dist
-
-**Clustering**
-
-cluster(column=nosz.aligned.good.filter.unique.pick.dist, name=nosz.aligned.good.filter.pick.names, method=average, cutoff=0.3)
-
-in= nosz.aligned.good.filter.unique.pick.dist
-
-nosz.aligned.good.filter.pick.names
-
-out= nosz.aligned.good.filter.unique.pick.an.list
-
-**OTU representatives for phylogenetic tree**
-
-get.oturep(column=nosz.aligned.good.filter.unique.pick.good.filter.dist, fasta=nosz.aligned.good.filter.unique.pick.good.filter.fasta, name=nosz.aligned.good.filter.pick.good.names, list=nosz.aligned.good.filter.unique.pick.good.filter.an.list, cutoff=0.11)
-
-in= nosz.aligned.good.filter.unique.pick.good.filter.dist
-
-nosz.aligned.good.filter.unique.pick.good.filter.fasta
-
-nosz.aligned.good.filter.pick.good.names
-
-nosz.aligned.good.filter.unique.pick.good.filter.an.list
-
-out= nosz.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta
-
-nosz.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.names
-
-**Get redundant dataset (final database):**
-
-deunique.seqs(fasta=nosz.aligned.good.filter.unique.pick.good.filter.fasta, name=nosz.aligned.good.filter.pick.good.names)
-
-in= nosz.aligned.good.filter.unique.pick.good.filter.fasta
-
-nosz.aligned.good.filter.pick.good.names
-
-out= nosz.aligned.good.filter.unique.pick.redundant.fasta
-
-**Get the representatives tree:**
-
-iqtree -s nosz.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta -m MFP -alrt 1000 -bb 1000 -nt 10
-
-in= nosz.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta
-
-out=nosz.aligned.good.filter.unique.pick.good.filter.an.0.11.rep.fasta.treefile
-
-**Placement new sequences in the tree**
-
-mafft --thread 10 --auto otu.rep.011\_named\_to\_align.fasta\&gt; otu.rep.011\_aligned.fasta
-
-in= otu.rep.011\_named\_to\_align.fasta
-
-out= otu.rep.011\_aligned.fasta
-
-raxmlHPC -f v -s otu.rep.011\_aligned.fasta -t tree\_newick.txt -m GTRCAT -H -n TEST
-
-in= otu.rep.011\_aligned.fasta
-
-tree\_newick.txt
-
-out= otu.rep.011\_aligned.fasta.treefile
