@@ -32,17 +32,17 @@ seqkit rmdup {gene}.fungene.fasta -s -o {gene}.fungene.clean.fasta
 
 **Getting started**
 
-1. Logon to the place where you will analysis your data, e.g. server
+**1.** Logon to the place where you will analysis your data, e.g. server
 
-2. Create a local copy of the pipeline in a project folder
+**2.** Create a local copy of the pipeline in a project folder
 
 `git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/database-pmoa.git`
 
-3. Enter the pipeline folder with: 
+**3.** Enter the pipeline folder with: 
 
  `cd database-pmoa`
 
-4. The configuration of the pipeline needs to be set in the file **config.yaml**. Adjust the settings: 
+**4.** The configuration of the pipeline needs to be set in the file **config.yaml**. Adjust the settings: 
 
 ```
 gene: gene name
@@ -52,11 +52,11 @@ cutoff_otu: cut off for OTU clustering (generally found in the literature)
 cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
 framebot_db: false if there is no framebot reference database, otherwise, true
 ```
-5. Check if the config file is correct and which steps will be run
+**5.** Check if the config file is correct and which steps will be run
 
 `snakemake -n`
 
-6. Run the pipeline. -j specifies the number of threads. Conda is the package manager. Optionally do this in a tmux session.
+**6.** Run the pipeline. -j specifies the number of threads. Conda is the package manager. Optionally do this in a tmux session.
 
 `snakemake -j 8 --use-conda`
 
@@ -75,17 +75,17 @@ The most recent sequences will be downloaded, within a date range, processed and
 
 **Getting started**
 
-1. Logon to the place where you will analysis your data, e.g. server
+**1.** Logon to the place where you will analysis your data, e.g. server
 
-2. Create a local copy of the pipeline in a project folder
+**2.** Create a local copy of the pipeline in a project folder
 
 `git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/database-pmoa.git`
 
-3. Enter the pipeline folder with: 
+**3.** Enter the pipeline folder with: 
 
  `cd database-pmoa`
 
-4. The configuration of the pipeline needs to be set in the file **config.update.yaml**. Adjust the settings: 
+**4.** The configuration of the pipeline needs to be set in the file **config.update.yaml**. Adjust the settings: 
 
 ```
 gene: gene name
@@ -102,11 +102,11 @@ path_to_db: "path_to_the_fasta_file_of_the_full_database"
 path_to_tax: "path_to_the_taxonomy_file_of_the_full_database"
 
 ```
-5. Check if the config file is correct and which steps will be run
+**5.** Check if the config file is correct and which steps will be run
 
 `snakemake -n -s Snakefile.update`
 
-6. Run the pipeline. -j specifies the number of threads. Conda is the package manager. Optionally do this in a tmux session.
+**6.** Run the pipeline. -j specifies the number of threads. Conda is the package manager. Optionally do this in a tmux session.
 
 `snakemake -j 8 -s Snakefile.update --use-conda`
 
@@ -137,22 +137,37 @@ ________________________________________________________________________________
 
 # Refining sequence taxonomy 
 
+After getting your database files, it is still necessary to check the taxonomy/clustering of the sequences in the phylogenetic tree and improve the unassigned/unclassified ones
 
-Download metadata from all sequences
--entrez app from NCBI - conda install -c bioconda entrez-direct 
-esearch -db nucleotide -query "nirK[gene]" | efetch -format gpc | xtract -insd source organism mol_type strain country isolation_source | sort | uniq >iso_source_nirk_2.txt
+It is also possible to download metadata from all sequences using the Entrez Direct from NCBI and add that information to the taxonomy string
 
--Look at the tree – check if there are defined clades in the literature
--Check if there are cultivated representatives in the OTU groups
--Get the taxonomy of the representatives using VLOOKUP (Excel)
--Use the R script (expand_taxonomy.R) to expand the taxonomy to all the sequences in the OTU group
--Check whether the cultivated representatives have their correct taxonomy (Excel). – until genus
+```
+conda create -n entrez
+source activate entrez
+conda install -c bioconda entrez-direct
+```
+Example nirK gene:
 
--Add the species and environmental origin to the last level of the taxonomy
-	-names and number of sequences in the .fasta and .taxonomy file must be equal.
-	-formatting will depend on the software to be used – remove all spaces, avoid different characters
-		-for mothur, strings should end with “;”
-		-for qiime2, strings should end without “;”
+`esearch -db nucleotide -query "nirK[gene]" | efetch -format gpc | xtract -insd source organism mol_type strain country isolation_source | sort | uniq >metadata_nirk.txt`
+
+After having your tree ready and metadata downloaded (optional):
+
+**1.** Check if there are cultivated representatives in the OTU groups - not always the OTU representative sequence is a cultivated/known organism, the program is not able to distinguish that - check in the file "interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.names"
+
+**2.** Look at the tree – check if there are defined clades in the literature
+
+**3.** It is possible to match the sequences with their full string taxonomy donwloaded for NCBI using the using VLOOKUP function (Excel)- it makes the checking and formatting of the taxonomy file easier. 
+
+**4.** After checking and refining/correcting the taxonomies of the OTUs (until genus level, work on species/strains in the full taxonomy list), it is necessary to expand the taxonomy to all the sequences in the OTU group (remember that not all the sequences in the db are in the tree, only the OTU representatives) - use the **expand_taxonomy.R** script
+
+**5.** In the full taxonomy file, check whether the cultivated representatives have their correct taxonomy (Excel). Add the species and environmental origin to the last level of the taxonomy
+
+**6.** Some formatting parameters that have to be observed: 
+	
+- Names and number of sequences in the .fasta and .taxonomy file must be equal
+- Formatting will depend on the software to be used – remove all spaces, avoid different characters
+	- for mothur, strings should end with “;”
+	- for qiime2, strings should end without “;”
 
 
 
