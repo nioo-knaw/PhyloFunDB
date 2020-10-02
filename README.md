@@ -104,10 +104,58 @@ path_to_tax: "path_to_the_taxonomy_file_of_the_full_database"
 ```
 5. Check if the config file is correct and which steps will be run
 
-`snakemake -n`
+`snakemake -n -s Snakefile.update`
 
 6. Run the pipeline. -j specifies the number of threads. Conda is the package manager. Optionally do this in a tmux session.
 
 `snakemake -j 8 -s Snakefile.update --use-conda`
+
+___________________________________________________________________________________________________________________________________________________
+
+**Updating the pmoA database**
+
+For updating the pmoA database, there is a specific config file, **config.update.pmoa.yaml**, and a specific Snakefile, **Snakefile.update.pmoa**
+The main difference in this file is that the query words to recover sequences belonging to pmoA and other copper monooxygenase genes are already included in the Snakefile.
+
+In order to update the pmoA database, you can follow the steps to update any other gene, then check the date parameters in the config.update.pmoa.yaml file:
+
+```
+mindate: 2020/02/06
+maxdate: 2020/09/03
+```
+Also check if the paths to the tree file, to the tree sequences, full database fasta and full taxonomy file are correct. 
+
+Check if everything is correct:
+
+`snakemake -n -s Snakefile.update.pmoa`
+
+Then, run the pmoA update pipeline
+
+`snakemake -j 8 -s Snakefile.update.pmoa --use-conda`
+
+_____________________________________________________________________________________________________________________________________________________
+
+# Refining sequence taxonomy 
+
+
+Download metadata from all sequences
+-entrez app from NCBI - conda install -c bioconda entrez-direct 
+esearch -db nucleotide -query "nirK[gene]" | efetch -format gpc | xtract -insd source organism mol_type strain country isolation_source | sort | uniq >iso_source_nirk_2.txt
+
+-Look at the tree – check if there are defined clades in the literature
+-Check if there are cultivated representatives in the OTU groups
+-Get the taxonomy of the representatives using VLOOKUP (Excel)
+-Use the R script (expand_taxonomy.R) to expand the taxonomy to all the sequences in the OTU group
+-Check whether the cultivated representatives have their correct taxonomy (Excel). – until genus
+
+-Add the species and environmental origin to the last level of the taxonomy
+	-names and number of sequences in the .fasta and .taxonomy file must be equal.
+	-formatting will depend on the software to be used – remove all spaces, avoid different characters
+		-for mothur, strings should end with “;”
+		-for qiime2, strings should end without “;”
+
+
+
+
 
 
