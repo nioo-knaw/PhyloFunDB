@@ -1,6 +1,6 @@
-gene: hhyL
-full_name: "hydrogenase"
+gene: mcrA
+full_name: "methyl coenzyme M reductase"
 minlength: 350
 cutoff_otu: 0.01
 cutoff_dm: 0.25
-framebot_db: false   
+framebot_db: true   
