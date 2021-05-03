@@ -21,7 +21,9 @@ rule download_ncbi:
            efetch -format gpc | \
            xtract -pattern INSDFeature -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDInterval_accession -element INSDInterval_from -element INSDInterval_to | \
            sort -u -k1,1 | \
-           uniq | xargs -n 3 sh -c 'efetch -db nuccore -id "$0" -seq_start "$1" -seq_stop "$2" -format fasta' > {output}
+           uniq | \
+           awk 'NF<4' | \
+           xargs -n 3 sh -c 'efetch -db nuccore -id "$0" -seq_start "$1" -seq_stop "$2" -format fasta' > {output}
            """
 
 rule download_taxonomy:
