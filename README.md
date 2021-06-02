@@ -167,7 +167,7 @@ After having your tree ready and metadata downloaded (optional):
 - Names and number of sequences in the .fasta and .taxonomy file must be equal
 - Formatting will depend on the software to be used – remove all spaces, avoid different characters
 	- for mothur, strings should end with “;”
-	- for qiime2, strings should end without “;”
+	- for qiime2, strings should end without “;” - also, you have to remove the gaps from the sequences.
 
 
 
