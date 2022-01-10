@@ -2,13 +2,12 @@ configfile: "config.yaml"
 wildcard_constraints:
    gene = '\w+'
 
-if config['update'] == "yes":
+rule final:
     input: expand("RAxML_labelledTree.{gene} \
                   results/new.{gene}.db.fasta \
-                   results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"])
-if config['update'] == "no":
-    input: expand("results/{gene}.treefile \
-                  results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
+                   results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"]) if config['update'] == "yes"\
+                   else expand("results/{gene}.treefile \
+                   results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
                    results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"])                   
                    
 rule download_ncbi:
@@ -22,7 +21,7 @@ rule download_ncbi:
         mindate=config["mindate"],
         maxdate=config["maxdate"]
     message: "Retrieving gene sequences from NCBI. Note, this can take a (long) while"
-   shell:""""
+    shell:"""
         if config['update'] == "yes";then
            esearch -db nucleotide -query "{params.gene}[gene]" -mindate {params.mindate} -maxdate {params.maxdate} | \
             efetch -format gpc | \
@@ -39,7 +38,7 @@ rule download_ncbi:
             uniq | \
             awk 'NF<4' | \
             xargs -n 3 sh -c 'efetch -db nuccore -id "$0" -seq_start "$1" -seq_stop "$2" -format fasta' > {output}
-            
+            """
 
 rule download_taxonomy:
     output:
@@ -73,11 +72,11 @@ rule rename_seqs:
     output:
         "interm/{gene}.renamed.fasta"
     shell:
-       """
-       sed -e 's/[.]/-/' -e 's/ /-/g' -e 's/_//g' {input} | \
-       stdbuf -o0 cut -d "-" -f 1,4,5| \
-       sed -e 's/-/_/g' -e 's/[.]//g' -e 's/[,]//g' > {output}
-       """
+        """
+        sed -e 's/[.]/-/' -e 's/ /-/g' -e 's/_//g' {input} | \
+        stdbuf -o0 cut -d "-" -f 1,4,5| \
+        sed -e 's/-/_/g' -e 's/[.]//g' -e 's/[,]//g' > {output}
+        """
        
 rule get_unverified:
     input:
