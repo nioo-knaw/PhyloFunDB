@@ -5,11 +5,12 @@ wildcard_constraints:
 rule final:
     input: expand("RAxML_labelledTree.{gene} \
                   results/new.{gene}.db.fasta \
-                   results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"]) if config['update'] == "yes"\
+                   results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"]) if config['update']\
                    else expand("results/{gene}.treefile \
                    results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
                    results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"])                   
-                   
+ #config == true
+ 
 rule download_ncbi:
     output: 
         "interm/{gene}.fasta"
@@ -22,23 +23,24 @@ rule download_ncbi:
         maxdate=config["maxdate"]
     message: "Retrieving gene sequences from NCBI. Note, this can take a (long) while"
     shell:"""
-        if config['update'] == "yes";then
-           esearch -db nucleotide -query "{params.gene}[gene]" -mindate {params.mindate} -maxdate {params.maxdate} | \
-            efetch -format gpc | \
-            xtract -pattern INSDFeature -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDInterval_accession -element INSDInterval_from -element INSDInterval_to | \
-                sort -u -k1,1 | \
-                uniq | \
-                awk 'NF<4' | \
-                xargs -n 3 sh -c 'efetch -db nuccore -id "$0" -seq_start "$1" -seq_stop "$2" -format fasta' > {output}
-        else:
-            esearch -db nucleotide -query "{params.gene}[gene]" | \
-            efetch -format gpc | \
-            xtract -pattern INSDFeature -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDInterval_accession -element INSDInterval_from -element INSDInterval_to | \
-            sort -u -k1,1 | \
-            uniq | \
-            awk 'NF<4' | \
-            xargs -n 3 sh -c 'efetch -db nuccore -id "$0" -seq_start "$1" -seq_stop "$2" -format fasta' > {output}
-            """
+           if config[update]==True; then
+               esearch -db nucleotide -query "{params.gene}[gene]" -mindate {params.mindate} -maxdate {params.maxdate} | \
+               efetch -format gpc | \
+               xtract -pattern INSDFeature -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDInterval_accession -element INSDInterval_from -element INSDInterval_to | \
+               sort -u -k1,1 | \
+               uniq | \
+               awk 'NF<4' | \
+               xargs -n 3 sh -c 'efetch -db nuccore -id "$0" -seq_start "$1" -seq_stop "$2" -format fasta' > {output}
+           else
+               esearch -db nucleotide -query "{params.gene}[gene]" | \
+               efetch -format gpc | \
+               xtract -pattern INSDFeature -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDInterval_accession -element INSDInterval_from -element INSDInterval_to | \
+               sort -u -k1,1 | \
+               uniq | \
+               awk 'NF<4' | \
+               xargs -n 3 sh -c 'efetch -db nuccore -id "$0" -seq_start "$1" -seq_stop "$2" -format fasta' > {output}
+           fi
+           """
 
 rule download_taxonomy:
     output:
@@ -52,19 +54,20 @@ rule download_taxonomy:
         maxdate=config["maxdate"]
     message: "Retrieving taxonomy from NCBI. Note, this can take a (long) while"
     shell:"""
-        if config['update'] == "yes"; then
-            esearch -db nucleotide -query "{params.gene}[gene]" -mindate {params.mindate} -maxdate {params.maxdate} | \
-            efetch -format gpc | \
-            xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDSeq_accession-version -element INSDSeq_taxonomy |\
-            sort -u -k1,1 |\
-            uniq > {output}
-        else:
-            esearch -db nucleotide -query "{params.gene}[gene]" | \
-            efetch -format gpc | \
-            xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDSeq_accession-version -element INSDSeq_taxonomy |\
-            sort -u -k1,1 |\
-            uniq > {output}
-            """
+           if config[update]==True; then
+               esearch -db nucleotide -query "{params.gene}[gene]" -mindate {params.mindate} -maxdate {params.maxdate} | \
+               efetch -format gpc | \
+               xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDSeq_accession-version -element INSDSeq_taxonomy |\
+               sort -u -k1,1 |\
+               uniq > {output}
+          else
+               esearch -db nucleotide -query "{params.gene}[gene]" | \
+               efetch -format gpc | \
+               xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDSeq_accession-version -element INSDSeq_taxonomy |\
+               sort -u -k1,1 |\
+               uniq > {output}
+          fi
+         """
         
 rule rename_seqs:
     input:
@@ -330,21 +333,21 @@ rule tax_format_final:
     script:
         "renaming.R"
         
-if config['update'] == "no":
-    rule iqtree:
-        input:
+if not config['update']:
+     rule iqtree:
+         input:
             expand("interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta", gene=config["gene"], cutoff_otu=config["cutoff_otu"])
-        output:
+         output:
             "results/{gene}.treefile"
-        params:
+         params:
             "results/{gene}"
-        conda:
+         conda:
             "envs/iqtree.yaml"
-        threads:10
-        shell:
+         threads:10
+         shell:
             "iqtree -s {input}  -m MFP -alrt 1000 -bb 1000 -nt {threads} -pre {params}"
             
-if config['update'] == "yes":
+if config['update']:
     rule cat_EPA:
         input:
            fasta_new=expand("interm/{gene}.aligned.good.filter.unique.pick.good.filter.an.{cutoff_otu}.rep.fasta", gene=config["gene"], cutoff_otu=config["cutoff_otu"]),

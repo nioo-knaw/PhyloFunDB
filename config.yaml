@@ -4,10 +4,10 @@ minlength: 350
 cutoff_otu: 0.01
 cutoff_dm: 0.25
 framebot_db: true
-update: no
+update: false
 mindate: 2020/02/06
 maxdate: 2020/09/03
-path_to_tree: "/mnt/nfs/bioinfdata/home/NIOO/ohanac/database/EPA/otu688_ref_newick.txt"
-path_to_seqs: "/mnt/nfs/bioinfdata/home/NIOO/ohanac/database/EPA/otu.rep.012_named_to_align.fasta"
-path_to_db: "/mnt/nfs/bioinfdata/home/NIOO/ohanac/database/tax/tax_final/expanded_pmoa_db.fasta"
-path_to_tax: "/mnt/nfs/bioinfdata/home/NIOO/ohanac/database/tax/tax_final/expanded_pmoa_taxonomy.tax"
+path_to_tree: "/home/NIOO/ohanac/database/EPA/otu688_ref_newick.txt"
+path_to_seqs: "/home/NIOO/ohanac/database/EPA/otu.rep.012_named_to_align.fasta"
+path_to_db: "/home/NIOO/ohanac/database/tax/tax_final/expanded_pmoa_db.fasta"
+path_to_tax: "/home/NIOO/ohanac/database/tax/tax_final/expanded_pmoa_taxonomy.tax"
