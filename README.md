@@ -114,29 +114,6 @@ path_to_tax: "path_to_the_taxonomy_file_of_the_full_database"
 
 ___________________________________________________________________________________________________________________________________________________
 
-**Updating the pmoA database**
-
-For updating the pmoA database, there is a specific config file, **config.update.pmoa.yaml**, and a specific Snakefile, **Snakefile.update.pmoa**
-The main difference in this file is that the query words to recover sequences belonging to pmoA and other copper monooxygenase genes are already included in the Snakefile.
-
-In order to update the pmoA database, you can follow the steps to update any other gene, then check the date parameters in the config.update.pmoa.yaml file:
-
-```
-mindate: 2020/02/06
-maxdate: 2020/09/03
-```
-Also check if the paths to the tree file, to the tree sequences, full database fasta and full taxonomy file are correct. 
-
-Check if everything is correct:
-
-`snakemake -n -s Snakefile.update.pmoa`
-
-Then, run the pmoA update pipeline
-
-`snakemake -j 8 -s Snakefile.update.pmoa --use-conda`
-
-_____________________________________________________________________________________________________________________________________________________
-
 # Refining sequence taxonomy 
 
 After getting your database files, it is still necessary to check the taxonomy/clustering of the sequences in the phylogenetic tree and improve the unassigned/unclassified ones
