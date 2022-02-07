@@ -51,6 +51,7 @@ minlength: minimum sequence length
 cutoff_otu: cut off for OTU clustering (generally found in the literature)
 cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
 framebot_db: false if there is no framebot reference database, otherwise, true
+update: false, as you want to create a new dabatase
 ```
 **5.** Check if the config file is correct and which steps will be run
 
@@ -63,7 +64,7 @@ framebot_db: false if there is no framebot reference database, otherwise, true
  
 _____________________________________________________________________________________________________________________________
 
-# Update pipeline 
+# Updating the old pipeline 
 
 Some time after you built your specific gene pipeline, it is possible to update it with the newest sequences uploaded to the NCBI database, setting a date range for downloading new sequences and adding the new OTUs to the reference tree. 
 
@@ -90,12 +91,13 @@ The most recent sequences will be downloaded, within a date range, processed and
 ```
 gene: gene name
 full_name: "protein full name"
-mindate: date after the sequences in the initial database were donwloaded
-maxdate: current day
 minlength: minimum sequence length
 cutoff_otu: cut off for OTU clustering (generally found in the literature)
 cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
 framebot_db: false if there is no framebot reference database, otherwise, true
+update: true, very important
+mindate: date after the sequences in the initial database were donwloaded (yyyy/mm/dd)
+maxdate: current day (yyyy/mm/dd)
 path_to_tree: "path_to_the_reference_tree_of_the_database"
 path_to_seqs: "path_to_the_sequences_used_to_build_the_reference_tree_of_the_database" - the new sequences need to be aligned to the sequences in the tree
 path_to_db: "path_to_the_fasta_file_of_the_full_database"
