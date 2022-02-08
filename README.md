@@ -51,6 +51,7 @@ minlength: minimum sequence length
 cutoff_otu: cut off for OTU clustering (generally found in the literature)
 cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
 framebot_db: false if there is no framebot reference database, otherwise, true
+update: false, as you want to create a new dabatase
 ```
 **5.** Check if the config file is correct and which steps will be run
 
@@ -63,7 +64,7 @@ framebot_db: false if there is no framebot reference database, otherwise, true
  
 _____________________________________________________________________________________________________________________________
 
-# Update pipeline 
+# Updating the old pipeline 
 
 Some time after you built your specific gene pipeline, it is possible to update it with the newest sequences uploaded to the NCBI database, setting a date range for downloading new sequences and adding the new OTUs to the reference tree. 
 
@@ -90,12 +91,13 @@ The most recent sequences will be downloaded, within a date range, processed and
 ```
 gene: gene name
 full_name: "protein full name"
-mindate: date after the sequences in the initial database were donwloaded
-maxdate: current day
 minlength: minimum sequence length
 cutoff_otu: cut off for OTU clustering (generally found in the literature)
 cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
 framebot_db: false if there is no framebot reference database, otherwise, true
+update: true, very important
+mindate: date after the sequences in the initial database were donwloaded (yyyy/mm/dd)
+maxdate: current day (yyyy/mm/dd)
 path_to_tree: "path_to_the_reference_tree_of_the_database"
 path_to_seqs: "path_to_the_sequences_used_to_build_the_reference_tree_of_the_database" - the new sequences need to be aligned to the sequences in the tree
 path_to_db: "path_to_the_fasta_file_of_the_full_database"
@@ -111,29 +113,6 @@ path_to_tax: "path_to_the_taxonomy_file_of_the_full_database"
 `snakemake -j 8 -s Snakefile.update --use-conda`
 
 ___________________________________________________________________________________________________________________________________________________
-
-**Updating the pmoA database**
-
-For updating the pmoA database, there is a specific config file, **config.update.pmoa.yaml**, and a specific Snakefile, **Snakefile.update.pmoa**
-The main difference in this file is that the query words to recover sequences belonging to pmoA and other copper monooxygenase genes are already included in the Snakefile.
-
-In order to update the pmoA database, you can follow the steps to update any other gene, then check the date parameters in the config.update.pmoa.yaml file:
-
-```
-mindate: 2020/02/06
-maxdate: 2020/09/03
-```
-Also check if the paths to the tree file, to the tree sequences, full database fasta and full taxonomy file are correct. 
-
-Check if everything is correct:
-
-`snakemake -n -s Snakefile.update.pmoa`
-
-Then, run the pmoA update pipeline
-
-`snakemake -j 8 -s Snakefile.update.pmoa --use-conda`
-
-_____________________________________________________________________________________________________________________________________________________
 
 # Refining sequence taxonomy 
 
