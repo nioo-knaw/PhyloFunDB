@@ -9,8 +9,7 @@ rule final:
                    else expand("results/{gene}.treefile \
                    results/{gene}.aligned.good.filter.unique.pick.good.filter.redundant.fasta \
                    results/{gene}.taxonomy.final.txt".split(), gene=config["gene"], cutoff_otu=config["cutoff_otu"])                   
- #config == true
- 
+
 rule download_ncbi:
     output: 
         "interm/{gene}.fasta"
@@ -23,7 +22,7 @@ rule download_ncbi:
         maxdate=config["maxdate"]
     message: "Retrieving gene sequences from NCBI. Note, this can take a (long) while"
     shell:"""
-           if config[update]==True; then
+           if [[ {config[update]} == True ]]; then
                esearch -db nucleotide -query "{params.gene}[gene]" -mindate {params.mindate} -maxdate {params.maxdate} | \
                efetch -format gpc | \
                xtract -pattern INSDFeature -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDInterval_accession -element INSDInterval_from -element INSDInterval_to | \
@@ -54,7 +53,7 @@ rule download_taxonomy:
         maxdate=config["maxdate"]
     message: "Retrieving taxonomy from NCBI. Note, this can take a (long) while"
     shell:"""
-           if config[update]==True; then
+           if [[ {config[update]} == True ]]; then
                esearch -db nucleotide -query "{params.gene}[gene]" -mindate {params.mindate} -maxdate {params.maxdate} | \
                efetch -format gpc | \
                xtract -pattern INSDSeq -if INSDFeature_key -equals CDS -and INSDQualifier_value -equals {params.gene} -or INSDQualifier_value -contains '{params.full_name}' -element INSDSeq_accession-version -element INSDSeq_taxonomy |\
