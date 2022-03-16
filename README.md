@@ -1,4 +1,4 @@
-# Database pipeline 
+# PhyloFunDB pipeline 
 
 Pipeline for specific gene database construction and update.
 
@@ -36,11 +36,11 @@ seqkit rmdup {gene}.fungene.fasta -s -o {gene}.fungene.clean.fasta
 
 **2.** Create a local copy of the pipeline in a project folder
 
-`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/database-pmoa.git`
+`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/PhyloFunDB.git`
 
 **3.** Enter the pipeline folder with: 
 
- `cd database-pmoa`
+ `cd PhyloFunDB`
 
 **4.** The configuration of the pipeline needs to be set in the file **config.yaml**. Adjust the settings: 
 
@@ -52,6 +52,13 @@ cutoff_otu: cut off for OTU clustering (generally found in the literature)
 cutoff_dm: cut off for distance matrix (in general, 0.25 is good enough)
 framebot_db: false if there is no framebot reference database, otherwise, true
 update: false, as you want to create a new dabatase
+mindate: only when you want to update the database
+maxdate: only when you want to update the database
+path_to_tree: "only when you want to update the database"
+path_to_seqs: "only when you want to update the database"
+path_to_db: "only when you want to update the database"
+path_to_tax: "only when you want to update the database"
+
 ```
 **5.** Check if the config file is correct and which steps will be run
 
@@ -66,7 +73,7 @@ ________________________________________________________________________________
 
 # Updating the old pipeline 
 
-Some time after you built your specific gene pipeline, it is possible to update it with the newest sequences uploaded to the NCBI database, setting a date range for downloading new sequences and adding the new OTUs to the reference tree. 
+Some time after you built your specific gene pipeline, it is possible to update it with the newest sequences uploaded to the NCBI database, setting a date range for downloading new sequences and adding the new OTUs to the reference tree. You just need to adjust the options in the config.yaml file.
 
 The update pipeline is based on the following workflow: 
 
@@ -78,15 +85,15 @@ The most recent sequences will be downloaded, within a date range, processed and
 
 **1.** Logon to the place where you will analysis your data, e.g. server
 
-**2.** Create a local copy of the pipeline in a project folder
+**2.** Create a local copy of the pipeline in a project folder, or enter the folder created previously, in case you already have built a dabatase.
 
-`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/database-pmoa.git`
+`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/PhyloFunDB.git`
 
 **3.** Enter the pipeline folder with: 
 
- `cd database-pmoa`
+ `cd PhyloFunDB`
 
-**4.** The configuration of the pipeline needs to be set in the file **config.update.yaml**. Adjust the settings: 
+**4.** Adjust the settings in the file **config.yaml**.: 
 
 ```
 gene: gene name
