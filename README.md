@@ -36,7 +36,7 @@ seqkit rmdup {gene}.fungene.fasta -s -o {gene}.fungene.clean.fasta
 
 **2.** Create a local copy of the pipeline in a project folder
 
-`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/PhyloFunDB.git`
+`git clone https://github.com/nioo-knaw/PhyloFunDB.git`
 
 **3.** Enter the pipeline folder with: 
 
@@ -87,7 +87,7 @@ The most recent sequences will be downloaded, within a date range, processed and
 
 **2.** Create a local copy of the pipeline in a project folder, or enter the folder created previously, in case you already have built a dabatase.
 
-`git clone https://gitlab.bioinf.nioo.knaw.nl/OhanaC/PhyloFunDB.git`
+`git clone https://github.com/nioo-knaw/PhyloFunDB.git`
 
 **3.** Enter the pipeline folder with: 
 
